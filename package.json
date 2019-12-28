@@ -1,0 +1,37 @@
+{
+  "name": "terraform-scripts",
+  "version": "1.0.0",
+  "description": "Scripts designed for interacting with Terraform Cloud",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DanielSinclair/terraform-scripts.git"
+  },
+  "keywords": [
+    "terraform"
+  ],
+  "author": "Daniel Sinclair",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DanielSinclair/terraform-scripts/issues"
+  },
+  "homepage": "https://github.com/DanielSinclair/terraform-scripts#readme",
+  "bin": {
+    "terraform-scripts": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "ncc build ./index.js -w -o dist/",
+    "prerelease": "rimraf ./dist/",
+    "release": "ncc build ./index.js -o ./dist/ --minify --no-cache --no-source-map-register",
+    "prepublish": "yarn release"
+  },
+  "devDependencies": {
+    "@zeit/ncc": "^0.20.5"
+  },
+  "dependencies": {
+    "preferences": "^1.0.2"
+  }
+}
