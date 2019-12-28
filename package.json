@@ -29,7 +29,8 @@
     "prepublish": "yarn release"
   },
   "devDependencies": {
-    "@zeit/ncc": "^0.20.5"
+    "@zeit/ncc": "^0.20.5",
+    "rimraf": "^3.0.0"
   },
   "dependencies": {
     "preferences": "^1.0.2"
