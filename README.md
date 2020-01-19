@@ -1,6 +1,7 @@
-# Terraform Scripts 🛠
+# terraform-scripts 🛠
 
-Scripts to ease the process of interacting with Terraform Cloud
+This package includes scripts and configuration used by [create-terraform-module](https://github.com/DanielSinclair/create-terraform-module).
+
+## Terraform Cloud integrations
 - `deploy`
-
-Backend for [create-terraform-module](https://github.com/DanielSinclair/create-terraform-module)
+- `delete`
