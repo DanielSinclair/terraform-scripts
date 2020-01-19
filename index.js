@@ -5,11 +5,13 @@ import axios from 'axios'
 import tar from 'tar'
 import fs from 'fs'
 
-const DEBUG = false
-
 const prefs = new preferences('com.danielsinclair.terraformscripts')
 
-axios.defaults.headers.common['Authorization'] = `Bearer ${prefs.token}`
+const DEBUG = process.env.TFCLOUD_DEBUG || false
+const ORGANIZATION = process.env.TFCLOUD_ORG || prefs.organization
+const TOKEN = process.env.TFCLOUD_TOKEN || prefs.token
+
+axios.defaults.headers.common['Authorization'] = `Bearer ${TOKEN}`
 
 const parseModule = (dir) => {
   const modulePackage = JSON.parse(fs.readFileSync(`${dir}/package.json`).toString())
@@ -178,7 +180,7 @@ try {
   const script = scripts(args[0])
   const dir = process.env.TFMDIR || process.cwd()
   const params = parseModule(dir)
-  script(dir, prefs.organization, ...params, ...args.slice(1))
+  script(dir, ORGANIZATION, ...params, ...args.slice(1))
 } catch(e) {
   console.error(e)
 }

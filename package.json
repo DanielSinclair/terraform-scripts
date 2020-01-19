@@ -1,6 +1,6 @@
 {
   "name": "terraform-scripts",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Scripts designed for interacting with Terraform Cloud",
   "main": "index.js",
   "repository": {
@@ -29,12 +29,12 @@
     "prepublish": "yarn release"
   },
   "devDependencies": {
-    "@zeit/ncc": "^0.20.5",
+    "@zeit/ncc": "^0.21.0",
     "rimraf": "^3.0.0"
   },
   "dependencies": {
     "@danielsinclair/preferences": "^2.0.2",
-    "axios": "^0.19.0",
+    "axios": "^0.19.1",
     "chalk": "^3.0.0",
     "tar": "^5.0.5"
   }
