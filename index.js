@@ -1,28 +1,33 @@
 
 import preferences from '@danielsinclair/preferences'
+import program from 'commander'
 import chalk from 'chalk'
 import axios from 'axios'
 import tar from 'tar'
 import fs from 'fs'
+import packageJSON from './package.json'
 
 const prefs = new preferences('com.danielsinclair.terraformscripts')
 
 const DEBUG = process.env.TFCLOUD_DEBUG || false
-const ORGANIZATION = process.env.TFCLOUD_ORG || prefs.organization
+const ORG = process.env.TFCLOUD_ORG || prefs.organization
 const TOKEN = process.env.TFCLOUD_TOKEN || prefs.token
-
-axios.defaults.headers.common['Authorization'] = `Bearer ${TOKEN}`
 
 const parseModule = (dir) => {
   const modulePackage = JSON.parse(fs.readFileSync(`${dir}/package.json`).toString())
-  const module = modulePackage.name
-  let parsedModule = module.split('-')
+  const _module = modulePackage.name
+  let parsedModule = _module.split('-')
   parsedModule.shift()
   const provider = parsedModule.shift()
   const name = parsedModule.join('-')
   const version = modulePackage.version
-  return [module, provider, name, version]
+  return [_module, provider, name, version]
 }
+
+const DIR = process.cwd()
+const [,PROVIDER, NAME, VERSION] = parseModule(DIR)
+
+axios.defaults.headers.common['Authorization'] = `Bearer ${TOKEN}`
 
 const printSuccess = (message) => {
   console.log(chalk.green(message))
@@ -41,26 +46,26 @@ const registryAPI = axios.create({
   baseURL: 'https://app.terraform.io/api/registry/v1/modules'
 })
 
-const getModule = async (org, name, provider) => {
+const getModule = async () => {
   try {
-    const response = await registryAPI.get(`/${org}/${name}/${provider}`)
-    console.log(`🔎  Module ${org}/${name}/${provider} found`)
+    const response = await registryAPI.get(`/${ORG}/${NAME}/${PROVIDER}`)
+    console.log(`🔎  Module ${ORG}/${NAME}/${PROVIDER} found`)
     if (DEBUG) printJSON(e.response.data)
     return response.data
   } catch (e) {
-    console.log(`🔎  Module ${org}/${name}/${provider} not found`)
+    console.log(`🔎  Module ${ORG}/${NAME}/${PROVIDER} not found`)
     if (DEBUG) printJSON(e.response.data.errors[0])
   }
 }
 
-const getModuleVersion = async (org, name, provider, version) => {
+const getModuleVersion = async () => {
   try {
-    const response = await registryAPI.get(`/${org}/${name}/${provider}/${version}`)
-    console.log(`🔎  Found v${version}`)
+    const response = await registryAPI.get(`/${ORG}/${NAME}/${PROVIDER}/${VERSION}`)
+    console.log(`🔎  Found v${VERSION}`)
     if (DEBUG) printJSON(response.data)
     return response.data
   } catch (e) {
-    console.log(`🔎  Could not find v${version}`)
+    console.log(`🔎  Could not find v${VERSION}`)
     if (DEBUG) printJSON(e.response.data.errors[0])
   }
 }
@@ -70,10 +75,10 @@ const terraformCloudAPI = axios.create({
   headers: { 'Content-Type': 'application/vnd.api+json' }
 })
 
-const createModule = async (org, name, provider) => {
+const createModule = async () => {
   try {
-    const response = await terraformCloudAPI.post(`/organizations/${org}/registry-modules`, JSON.stringify({
-      data: { type: 'registry-modules', attributes: { name, provider } }
+    const response = await terraformCloudAPI.post(`/organizations/${ORG}/registry-modules`, JSON.stringify({
+      data: { type: 'registry-modules', attributes: { name: NAME, provider: PROVIDER } }
     }))
     printSuccess(`✅  Created module`)
     if (DEBUG) printJSON(response.data.data)
@@ -84,16 +89,16 @@ const createModule = async (org, name, provider) => {
   }
 }
 
-const createModuleVersion = async (org, name, provider, version) => {
+const createModuleVersion = async () => {
   try {
-    const response = await terraformCloudAPI.post(`/registry-modules/${org}/${name}/${provider}/versions`, JSON.stringify({
-      data: { type: 'registry-module-versions', attributes: { version } }
+    const response = await terraformCloudAPI.post(`/registry-modules/${ORG}/${NAME}/${PROVIDER}/versions`, JSON.stringify({
+      data: { type: 'registry-module-versions', attributes: { version: VERSION } }
     }))
-    printSuccess(`✅  Created v${version}`)
+    printSuccess(`✅  Created v${VERSION}`)
     if (DEBUG) printJSON(response.data.data)
     return response.data.data
   } catch (e) {
-    printError(`❌  Failed to create v${version}`)
+    printError(`❌  Failed to create v${VERSION}`)
     if (DEBUG) printJSON(e.response.data.errors[0])
   }
 }
@@ -115,9 +120,9 @@ const uploadModuleVersion = async (url, fileBuffer) => {
   }
 }
 
-const deleteModule = async (org, name, provider) => {
+const deleteModule = async () => {
   try {
-    await terraformCloudAPI.post(`/registry-modules/actions/delete/${org}/${name}/${provider}`)
+    await terraformCloudAPI.post(`/registry-modules/actions/delete/${ORG}/${NAME}/${PROVIDER}`)
     printSuccess(`✅  Deleted module`)
   } catch (e) {
     printError(`❌  Failed to delete module`)
@@ -125,12 +130,12 @@ const deleteModule = async (org, name, provider) => {
   }
 }
 
-const deleteModuleVersion = async (org, name, provider, version) => {
+const deleteModuleVersion = async () => {
   try {
-    await terraformCloudAPI.post(`/registry-modules/actions/delete/${org}/${name}/${provider}/${version}`)
-    printSuccess(`✅  Deleted previous v${version}`)
+    await terraformCloudAPI.post(`/registry-modules/actions/delete/${ORG}/${NAME}/${PROVIDER}/${VERSION}`)
+    printSuccess(`✅  Deleted previous v${VERSION}`)
   } catch (e) {
-    printError(`❌  Failed to delete v${version}`)
+    printError(`❌  Failed to delete v${VERSION}`)
     if (DEBUG) printJSON(e.response.data.errors[0])
   }
 }
@@ -141,46 +146,40 @@ const sleep = (ms) => {
   })
 }
 
-const deployFunc = async (dir, org, module, provider, name, version) => {
+program
+.name(packageJSON.name)
+.version(packageJSON.version)
+
+program
+.command('delete')
+.action(async () => {
   try {
-    let registryModule = await getModule(org, name, provider)
-    if (!registryModule) registryModule = await createModule(org, name, provider)
-    let moduleVersion = await getModuleVersion(org, name, provider, version)
-    if (moduleVersion) await deleteModuleVersion(org, name, provider, version)
-    moduleVersion = await createModuleVersion(org, name, provider, version)
+    await deleteModule()
+  } catch (e) {
+    printError(`🚨  An unknown error occured`)
+    if (DEBUG) console.error(e)
+  }
+})
+
+program
+.command('deploy')
+.action(async () => {
+  try {
+    let registryModule = await getModule()
+    if (!registryModule) registryModule = await createModule()
+    let moduleVersion = await getModuleVersion()
+    if (moduleVersion) await deleteModuleVersion()
+    moduleVersion = await createModuleVersion()
     const archiveFile = await createArchive()
     const uploadSucceeded = await uploadModuleVersion(moduleVersion.links.upload, archiveFile)
     await sleep(2000)
-    moduleVersion = await getModuleVersion(org, name, provider, version)
-    if (moduleVersion) printSuccess(`✅  Successfully deployed v${version}`)
-    else printError(`❌  Failed to deploy v${version}`)
+    moduleVersion = await getModuleVersion()
+    if (moduleVersion) printSuccess(`✅  Successfully deployed v${VERSION}`)
+    else printError(`❌  Failed to deploy v${VERSION}`)
   } catch (e) {
     printError(`🚨  An unknown error occured`)
     if (DEBUG) console.error(e)
   }
-}
+})
 
-const deleteFunc = async (dir, org, module, provider, name, version) => {
-  try {
-    await deleteModule(org, name, provider)
-  } catch (e) {
-    printError(`🚨  An unknown error occured`)
-    if (DEBUG) console.error(e)
-  }
-}
-
-const args = process.argv.slice(2)
-
-const scripts = (cmd) => ({
-  deploy: deployFunc,
-  delete: deleteFunc
-})[cmd]
-
-try {
-  const script = scripts(args[0])
-  const dir = process.env.TFMDIR || process.cwd()
-  const params = parseModule(dir)
-  script(dir, ORGANIZATION, ...params, ...args.slice(1))
-} catch(e) {
-  console.error(e)
-}
+program.parse(process.argv)
