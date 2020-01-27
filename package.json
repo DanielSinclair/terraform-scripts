@@ -1,8 +1,8 @@
 {
   "name": "terraform-scripts",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Scripts designed for interacting with Terraform Cloud",
-  "main": "dist/index.js",
+  "main": "cli.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/DanielSinclair/terraform-scripts.git"
@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/DanielSinclair/terraform-scripts#readme",
   "bin": {
-    "terraform-scripts": "dist/index.js"
+    "terraform-scripts": "cli.js"
   },
   "files": [
     "dist"
